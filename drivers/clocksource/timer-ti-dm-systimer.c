@@ -265,7 +265,6 @@ static void __init dmtimer_systimer_assign_alwon(void)
 				    pa == 0x48318000)
 					continue;
 
-				of_node_put(np);
 				break;
 			}
 		}
@@ -300,7 +299,6 @@ static u32 __init dmtimer_systimer_find_first_available(void)
 				continue;
 			}
 
-			of_node_put(np);
 			break;
 		}
 	}
