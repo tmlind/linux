@@ -3262,7 +3262,6 @@ static int mxt_remove(struct i2c_client *client)
 	mxt_free_object_table(data);
 	regulator_bulk_disable(ARRAY_SIZE(data->regulators),
 			       data->regulators);
-	pm_runtime_disable(dev);
 
 	return 0;
 }
