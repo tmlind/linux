@@ -669,7 +669,8 @@ static void cpcap_usb_detect(struct work_struct *work)
 		return;
 	}
 
-	usleep_range(40000, 60000);
+	/* Delay for 80ms to avoid vbus bouncing when usb cable is plugged in */
+	usleep_range(80000, 120000);
 
 	/* Throttle chrgcurr2 interrupt for charger done and retry */
 	switch (ddata->status) {
