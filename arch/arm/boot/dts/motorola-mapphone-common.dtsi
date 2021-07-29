@@ -4,6 +4,7 @@
 #include <dt-bindings/input/input.h>
 #include "omap443x.dtsi"
 #include "motorola-cpcap-mapphone.dtsi"
+#include "elpida_ecb240abacn.dtsi"
 
 / {
 	chosen {
@@ -245,6 +246,16 @@
 			};
 		};
 	};
+};
+
+&emif1 {
+	cs1-used;
+	device-handle = <&elpida_ECB240ABACN>;
+};
+
+&emif2 {
+	cs1-used;
+	device-handle = <&elpida_ECB240ABACN>;
 };
 
 &hdmi {
