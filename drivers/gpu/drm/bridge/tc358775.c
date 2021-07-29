@@ -555,8 +555,8 @@ static int tc358775_parse_dt(struct device_node *np, struct tc_data *tc)
 		parent = of_graph_get_remote_port_parent(endpoint);
 		of_node_put(endpoint);
 		if (parent) {
-			/* dsi0 port 1 */
-			endpoint = of_graph_get_endpoint_by_regs(parent, 1, -1);
+			/* dsi0 port 0 */
+			endpoint = of_graph_get_endpoint_by_regs(parent, 0, -1);
 			of_node_put(parent);
 			if (endpoint) {
 				prop = of_find_property(endpoint, "data-lanes",
