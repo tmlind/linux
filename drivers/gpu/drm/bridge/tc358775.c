@@ -14,6 +14,7 @@
 #include <linux/i2c.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/of_device.h>
 #include <linux/regulator/consumer.h>
 #include <linux/slab.h>
 
@@ -254,6 +255,11 @@ enum tc358775_ports {
 	TC358775_LVDS_OUT1,
 };
 
+enum tc3587x5_type {
+	TC358765,
+	TC358775,
+};
+
 struct tc_data {
 	struct i2c_client	*i2c;
 	struct device		*dev;
@@ -271,6 +277,8 @@ struct tc_data {
 	struct gpio_desc	*stby_gpio;
 	u8			lvds_link; /* single-link or dual-link */
 	u8			bpc;
+
+	enum tc3587x5_type	type;
 };
 
 static const u32 tc_lvds_in_bus_fmts[] = {
@@ -307,8 +315,10 @@ static void tc_bridge_pre_enable(struct drm_bridge *bridge)
 		dev_err(dev, "regulator vdd enable failed, %d\n", ret);
 	usleep_range(10000, 11000);
 
-	gpiod_set_value(tc->stby_gpio, 0);
-	usleep_range(10000, 11000);
+	if (!IS_ERR(tc->stby_gpio)) {
+		gpiod_set_value(tc->stby_gpio, 0);
+		usleep_range(10000, 11000);
+	}
 
 	gpiod_set_value(tc->reset_gpio, 0);
 	usleep_range(10, 20);
@@ -323,8 +333,10 @@ static void tc_bridge_post_disable(struct drm_bridge *bridge)
 	gpiod_set_value(tc->reset_gpio, 1);
 	usleep_range(10, 20);
 
-	gpiod_set_value(tc->stby_gpio, 1);
-	usleep_range(10000, 11000);
+	if (!IS_ERR(tc->stby_gpio)) {
+		gpiod_set_value(tc->stby_gpio, 1);
+		usleep_range(10000, 11000);
+	}
 
 	ret = regulator_disable(tc->vdd);
 	if (ret < 0)
@@ -696,6 +708,7 @@ static int tc_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 	tc->dev = dev;
 	tc->i2c = client;
+	tc->type = (enum tc3587x5_type)of_device_get_match_data(dev);
 
 	ret = drm_of_find_panel_or_bridge(dev->of_node, TC358775_LVDS_OUT0,
 					  0, &panel, NULL);
@@ -726,11 +739,15 @@ static int tc_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		return ret;
 	}
 
-	tc->stby_gpio = devm_gpiod_get(dev, "stby", GPIOD_OUT_HIGH);
-	if (IS_ERR(tc->stby_gpio)) {
-		ret = PTR_ERR(tc->stby_gpio);
-		dev_err(dev, "cannot get stby-gpio %d\n", ret);
-		return ret;
+	if (tc->type == TC358775) {
+		tc->stby_gpio = devm_gpiod_get(dev, "stby", GPIOD_OUT_HIGH);
+		if (IS_ERR(tc->stby_gpio)) {
+			ret = PTR_ERR(tc->stby_gpio);
+			dev_err(dev, "cannot get stby-gpio %d\n", ret);
+			return ret;
+		}
+	} else {
+		tc->stby_gpio = ERR_PTR(-ENODEV);
 	}
 
 	tc->reset_gpio = devm_gpiod_get(dev, "reset", GPIOD_OUT_HIGH);
@@ -759,13 +776,15 @@ static int tc_remove(struct i2c_client *client)
 }
 
 static const struct i2c_device_id tc358775_i2c_ids[] = {
-	{ "tc358775", 0 },
+	{ "tc358765", TC358765, },
+	{ "tc358775", TC358775, },
 	{ }
 };
 MODULE_DEVICE_TABLE(i2c, tc358775_i2c_ids);
 
 static const struct of_device_id tc358775_of_ids[] = {
-	{ .compatible = "toshiba,tc358775", },
+	{ .compatible = "toshiba,tc358765", .data = (void *)TC358765, },
+	{ .compatible = "toshiba,tc358775", .data = (void *)TC358775, },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, tc358775_of_ids);
