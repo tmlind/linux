@@ -12,6 +12,7 @@
 	};
 
 	aliases {
+		display0 = &lcd;
 		display1 = &hdmi0;
 	};
 
@@ -72,6 +73,58 @@
 		gpio = <&gpio4 0 GPIO_ACTIVE_HIGH>;	/* gpio96 */
 		enable-active-high;
 		vin-supply = <&sw5>;
+		/* REVISIT: This is currently needed for LCD backlight */
+		regulator-always-on;
+	};
+
+	/*
+	* REVISIT: We should find the real regulator and handle gpio_172 in
+	* the lp8550 driver instead
+	*/
+	lp8550_3v3_reg: regulator-lp8550 {
+		compatible = "regulator-fixed";
+		regulator-name = "lp8550-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		gpio = <&gpio6 12 GPIO_ACTIVE_HIGH>;	/* gpio_172 */
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	vcc_1v2_reg: regulator-vcc-1v2 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-1v2";
+		regulator-min-microvolt = <1200000>;
+		regulator-max-microvolt = <1200000>;
+		regulator-always-on;
+	};
+
+	vcc_1v8_reg: regulator-vcc-1v8 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-1v8";
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+	};
+
+	vcc_3v3_reg: regulator-vcc-3v3 {
+		compatible = "regulator-fixed";
+		regulator-name = "vcc-3v3";
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		regulator-always-on;
+	};
+
+	/* REVISIT: Use gpio_96 here eventually as enable-gpios? */
+	lcd: panel {
+		compatible = "motorola,lvds-mipi-vm-1007";
+		power-supply = <&vcc_3v3_reg>;
+		backlight = <&backlight>;
+		port {
+			panel_in: endpoint {
+				remote-endpoint = <&lvds_out>;
+			};
+		};
 	};
 
 	/* This is probably coming straight from the battery.. */
@@ -129,6 +182,27 @@
         >;
 };
 
+&dsi1 {
+	status = "okay";
+	vdd-supply = <&vcsi>;
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+
+			dsi1_out: endpoint {
+				remote-endpoint = <&bridge_in>;
+				/* REVISIT: Are these both needed? */
+				lanes = <0 1 2 3 4 5>;
+				data-lanes = <0 1 2 3>;
+			};
+		};
+	};
+};
+
 &dss {
 	status = "okay";
 };
@@ -158,6 +232,17 @@
 };
 
 &i2c1 {
+	/*
+	 * For lp8550, lp8550_en is gpio_172, lp8550_fault is gpio_51 but unused.
+	 * If we configure pwm-period, it should be set to 19232.
+	 */
+	backlight: backlight@2c {
+                compatible = "ti,lp8550";
+                reg = <0x2c>;
+                power-supply = <&lp8550_3v3_reg>;
+                dev-ctrl = /bits/ 8 <0x02>;
+	};
+
 	tmp105@48 {
 		compatible = "ti,tmp105";
 		reg = <0x48>;
@@ -169,6 +254,38 @@
 		interrupt-names = "irq", "wakeup";
 		wakeup-source;
 	};
+
+	/*
+	 * The stock kernel has lvds_wp_e gpio_46 and lvds_wp_g gpio_40.
+	 * Looks like gpio_96 needs to be high for i2cdetect to work, and
+	 * gpio_46 seems to map to reset.
+	 */
+	tc_bridge: bridge@50 {
+		compatible = "toshiba,tc358765";
+		reg = <0x50>;
+		vdd-supply = <&lcd_regulator>;
+		vddio-supply = <&vcc_1v8_reg>;
+		reset-gpios = <&gpio2 14 GPIO_ACTIVE_LOW>;	/* gpio_46 */
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				bridge_in: endpoint {
+					remote-endpoint = <&dsi1_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				lvds_out: endpoint {
+					remote-endpoint = <&panel_in>;
+				};
+			};
+		};
+        };
 };
 
 &keypad {

@@ -3033,6 +3033,35 @@ static const struct panel_desc mitsubishi_aa070mc01 = {
 	.bus_flags = DRM_BUS_FLAG_DE_HIGH,
 };
 
+static const struct display_timing motorola_lvds_mipi_vm_1007_timing = {
+	.pixelclock = { 78945, },
+	.hactive = { 1280, },
+	.hfront_porch = { 342, },
+	.hback_porch = { 1, },
+	.hsync_len = { 9, },
+	.vactive = { 800, },
+	.vfront_porch = { 4, },
+	.vback_porch = { 3, },
+	.vsync_len = { 1, },
+};
+
+static const struct panel_desc motorola_lvds_mipi_vm_1007 = {
+	.timings = &motorola_lvds_mipi_vm_1007_timing,
+	.num_timings = 1,
+	.bpc = 8,
+	.size = {
+		.width = 217,
+		.height = 136,
+	},
+	.delay = {
+		.enable = 50,
+		.disable = 50,
+	},
+	.bus_format = MEDIA_BUS_FMT_RGB888_1X7X4_SPWG,
+	.bus_flags = DRM_BUS_FLAG_DE_HIGH,
+	.connector_type = DRM_MODE_CONNECTOR_LVDS,
+};
+
 static const struct display_timing nec_nl12880bc20_05_timing = {
 	.pixelclock = { 67000000, 71000000, 75000000 },
 	.hactive = { 1280, 1280, 1280 },
@@ -4464,6 +4493,9 @@ static const struct of_device_id platform_of_match[] = {
 	}, {
 		.compatible = "mitsubishi,aa070mc01-ca1",
 		.data = &mitsubishi_aa070mc01,
+	}, {
+		.compatible = "motorola,lvds-mipi-vm-1007",
+		.data = &motorola_lvds_mipi_vm_1007,
 	}, {
 		.compatible = "nec,nl12880bc20-05",
 		.data = &nec_nl12880bc20_05,
