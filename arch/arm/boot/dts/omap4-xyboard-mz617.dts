@@ -1,0 +1,9 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+
+#include "motorola-mapphone-tablet-common.dtsi"
+
+/ {
+	model = "Motorola Xyboard MZ617";
+	compatible = "motorola,xyboard-mz617", "ti,omap4430", "ti,omap4";
+};
