@@ -1447,6 +1447,8 @@ static int gsm_control_wait(struct gsm_mux *gsm, struct gsm_control *control)
 
 static void gsm_dlci_close(struct gsm_dlci *dlci)
 {
+	struct gsm_mux *gsm = dlci->gsm;
+
 	del_timer(&dlci->t1);
 	if (debug & 8)
 		pr_debug("DLCI %d goes closed.\n", dlci->addr);
@@ -1457,7 +1459,8 @@ static void gsm_dlci_close(struct gsm_dlci *dlci)
 	} else
 		dlci->gsm->dead = true;
 	/* Unregister gsmtty driver,report gsmtty dev remove uevent for user */
-	tty_unregister_device(gsm_tty_driver, dlci->addr);
+	if (!gsm->initiator)
+		tty_unregister_device(gsm_tty_driver, dlci->addr);
 	wake_up(&dlci->gsm->event);
 	/* A DLCI 0 close is a MUX termination so we need to kick that
 	   back to userspace somehow */
@@ -1472,6 +1475,8 @@ static void gsm_dlci_close(struct gsm_dlci *dlci)
 
 static void gsm_dlci_open(struct gsm_dlci *dlci)
 {
+	struct gsm_mux *gsm = dlci->gsm;
+
 	/* Note that SABM UA .. SABM UA first UA lost can mean that we go
 	   open -> open */
 	del_timer(&dlci->t1);
@@ -1480,7 +1485,8 @@ static void gsm_dlci_open(struct gsm_dlci *dlci)
 	if (debug & 8)
 		pr_debug("DLCI %d goes open.\n", dlci->addr);
 	/* Register gsmtty driver,report gsmtty dev add uevent for user */
-	tty_register_device(gsm_tty_driver, dlci->addr, NULL);
+	if (!gsm->initiator)
+		tty_register_device(gsm_tty_driver, dlci->addr, NULL);
 	wake_up(&dlci->gsm->event);
 }
 
